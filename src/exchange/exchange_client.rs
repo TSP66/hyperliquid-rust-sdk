@@ -32,6 +32,15 @@ use super::cancel::ClientCancelRequestCloid;
 use super::order::{MarketCloseParams, MarketOrderParams};
 use super::{BuilderInfo, ClientLimit, ClientOrder};
 
+use std::time::{SystemTime, UNIX_EPOCH};
+
+pub fn timestamp_ms() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis()
+}
+
 #[derive(Debug)]
 pub struct ExchangeClient {
     pub http_client: HttpClient,
@@ -403,6 +412,7 @@ impl ExchangeClient {
         orders: Vec<ClientOrderRequest>,
         wallet: Option<&LocalWallet>,
     ) -> Result<ExchangeResponseStatus> {
+        println!("Bulk order opened at {}", timestamp_ms());
         let wallet = wallet.unwrap_or(&self.wallet);
         let timestamp = next_nonce();
 
@@ -412,6 +422,8 @@ impl ExchangeClient {
             transformed_orders.push(order.convert(&self.coin_to_asset)?);
         }
 
+        println!("Converted vector crap at {}", timestamp_ms());
+
         let action = Actions::Order(BulkOrder {
             orders: transformed_orders,
             grouping: "na".to_string(),
@@ -420,9 +432,14 @@ impl ExchangeClient {
         let connection_id = action.hash(timestamp, self.vault_address)?;
         let action = serde_json::to_value(&action).map_err(|e| Error::JsonParse(e.to_string()))?;
 
+        println!("Converted to value at {}", timestamp_ms());
+
         let is_mainnet = self.http_client.is_mainnet();
         let signature = sign_l1_action(wallet, connection_id, is_mainnet)?;
-        self.post(action, signature, timestamp).await
+        println!("Signed at: {}", timestamp_ms());
+        let x = self.post(action, signature, timestamp).await;
+        println!("Sent at: {}", timestamp_ms());
+        x
     }
 
     pub async fn bulk_order_with_builder(
