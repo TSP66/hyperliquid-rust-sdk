@@ -108,6 +108,9 @@ impl ExchangeClient {
 
         let base_url = base_url.unwrap_or(BaseUrl::Mainnet);
 
+        //Warm the connection
+        let _ = client.get(base_url.get_url()).send().await.unwrap();
+
         let info = InfoClient::new(None, Some(base_url)).await?;
         let meta = if let Some(meta) = meta {
             meta
