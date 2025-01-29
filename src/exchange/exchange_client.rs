@@ -96,13 +96,16 @@ impl Actions {
 
 impl ExchangeClient {
     pub async fn new(
-        client: Option<Client>,
+        _client: Option<Client>,
         wallet: LocalWallet,
         base_url: Option<BaseUrl>,
         meta: Option<Meta>,
         vault_address: Option<H160>,
     ) -> Result<ExchangeClient> {
-        let client = client.unwrap_or_default();
+
+        let client =    Client::builder()
+            .use_rustls_tls().build().unwrap();
+
         let base_url = base_url.unwrap_or(BaseUrl::Mainnet);
 
         let info = InfoClient::new(None, Some(base_url)).await?;
